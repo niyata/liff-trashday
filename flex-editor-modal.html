@@ -3,10 +3,12 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>📝 Flex Message Editor</title>
+  <title>📝 Flex Editor Modal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="/trashday/env.js"></script>
   <style>
     .drop-zone {
       border: 2px dashed #ccc;
@@ -36,7 +38,7 @@
 <body class="bg-light">
 
 <div class="container py-4">
-  <h2 class="mb-4 text-primary">📝 Flex Message Editor</h2>
+  <h2 class="mb-4 text-primary">📝 Flex Editor Modal</h2>
   <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#imageModal">📷 เลือกรูปภาพ</button>
 </div>
 
@@ -45,7 +47,7 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content rounded-4 shadow">
       <div class="modal-header border-0">
-        <h5 class="modal-title" id="imageModalLabel">เลือกรูปภาพสำหรับ Flex</h5>
+        <h5 class="modal-title" id="imageModalLabel">เลือกรูปภาพ</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
       </div>
       <div class="modal-body">
@@ -63,8 +65,7 @@
           <!-- Upload Tab -->
           <div class="tab-pane fade show active" id="uploadTab" role="tabpanel">
             <div id="dropZone" class="drop-zone">
-              <p class="mb-1"><strong>ลากรูปมาวางที่นี่</strong> หรือคลิกเพื่อเลือก</p>
-              <p class="text-muted">ไฟล์สูงสุด 10MB (เฉพาะ .jpg / .png)</p>
+              <p><strong>ลากรูปมาวางที่นี่</strong> หรือคลิกเพื่อเลือก</p>
               <input type="file" id="uploadInput" accept="image/*" hidden />
             </div>
             <div class="mt-3">
@@ -77,9 +78,7 @@
           </div>
           <!-- Library Tab -->
           <div class="tab-pane fade" id="libraryTab" role="tabpanel">
-            <div id="libraryImages" class="d-flex flex-wrap mt-2 justify-content-start">
-              <!-- รูปภาพจะถูกแสดงที่นี่ -->
-            </div>
+            <div id="libraryImages" class="d-flex flex-wrap mt-2 justify-content-start"></div>
           </div>
         </div>
       </div>
@@ -88,60 +87,79 @@
 </div>
 
 <script>
-  // handle drop zone
-  const dropZone = document.getElementById("dropZone");
-  const input = document.getElementById("uploadInput");
-  const preview = document.getElementById("uploadPreview");
-  const uploadBtn = document.getElementById("uploadBtn");
-  const progressBar = document.querySelector(".progress-bar");
-  const progress = document.getElementById("uploadProgress");
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const uploadInput = document.getElementById("uploadInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const preview = document.getElementById("uploadPreview");
+const progressBar = document.querySelector(".progress-bar");
+const progress = document.getElementById("uploadProgress");
+const dropZone = document.getElementById("dropZone");
 
-  dropZone.addEventListener("click", () => input.click());
+dropZone.addEventListener("click", () => uploadInput.click());
 
-  input.addEventListener("change", () => {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.innerHTML = `<img src="${e.target.result}" class="img-fluid rounded" style="max-height:200px">`;
-      uploadBtn.classList.remove("d-none");
+uploadInput.addEventListener("change", async () => {
+  const file = uploadInput.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  preview.innerHTML = `<img src="\${url}" class="img-fluid rounded" style="max-height:200px">`;
+  uploadBtn.classList.remove("d-none");
+});
+
+uploadBtn.addEventListener("click", async () => {
+  const file = uploadInput.files[0];
+  if (!file) return;
+
+  const fileName = Date.now() + "-" + file.name;
+  progress.classList.remove("d-none");
+
+  const { data, error } = await supabase.storage.from("trash-images").upload(fileName, file, {
+    cacheControl: "3600",
+    upsert: false
+  });
+
+  if (error) {
+    alert("อัปโหลดล้มเหลว: " + error.message);
+    return;
+  }
+
+  const { data: urlData } = supabase.storage.from("trash-images").getPublicUrl(fileName);
+  const imageUrl = urlData.publicUrl;
+
+  progressBar.style.width = "100%";
+  uploadBtn.innerText = "✅ เสร็จแล้ว";
+
+  // ส่งข้อมูลไปยัง GAS
+  await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "saveImageMeta",
+      imageUrl: imageUrl,
+      day: "วันจันทร์",
+      week: "1",
+      uploadedBy: "LINE_USER_ID"
+    })
+  });
+});
+
+// โหลดภาพจาก Supabase
+document.getElementById("library-tab").addEventListener("click", async () => {
+  const { data, error } = await supabase.storage.from("trash-images").list("", { limit: 100 });
+  const container = document.getElementById("libraryImages");
+  container.innerHTML = "";
+
+  data?.forEach(item => {
+    const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(item.name);
+    const img = document.createElement("img");
+    img.src = urlObj.publicUrl;
+    img.className = "image-thumb";
+    img.onclick = () => {
+      document.querySelectorAll(".image-thumb").forEach(i => i.classList.remove("selected"));
+      img.classList.add("selected");
     };
-    reader.readAsDataURL(file);
+    container.appendChild(img);
   });
-
-  uploadBtn.addEventListener("click", () => {
-    progress.classList.remove("d-none");
-    let percent = 0;
-    const interval = setInterval(() => {
-      percent += 10;
-      progressBar.style.width = percent + "%";
-      if (percent >= 100) {
-        clearInterval(interval);
-        uploadBtn.innerText = "✅ เสร็จแล้ว";
-      }
-    }, 200);
-  });
-
-  // ตัวอย่างโหลดรูปจากคลัง (Mock)
-  document.getElementById("library-tab").addEventListener("click", () => {
-    const container = document.getElementById("libraryImages");
-    container.innerHTML = "";
-    const urls = [
-      "https://placekitten.com/200/200",
-      "https://placebear.com/200/200",
-      "https://picsum.photos/200"
-    ];
-    urls.forEach(url => {
-      const img = document.createElement("img");
-      img.src = url;
-      img.className = "image-thumb";
-      img.onclick = () => {
-        document.querySelectorAll(".image-thumb").forEach(i => i.classList.remove("selected"));
-        img.classList.add("selected");
-      };
-      container.appendChild(img);
-    });
-  });
+});
 </script>
 </body>
 </html>
