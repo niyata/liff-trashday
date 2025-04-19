@@ -1,0 +1,33 @@
+# 💻 OS-level files
+.DS_Store
+Thumbs.db
+
+# 🧠 Node/CLI tools (เช่น Netlify CLI, clasp, npm)
+node_modules/
+package-lock.json
+.env
+.env.js
+.env.local
+
+# 🚫 Output/Build artifacts
+dist/
+build/
+*.log
+
+# 🔄 clasp file config (ปล่อยไว้ก็ได้ถ้า sync GAS แต่ห้าม share token)
+.clasp.json
+
+# 🧪 Test/temp files
+*.test.*
+__tests__/
+coverage/
+
+# 🗃 ZIP releases
+*.zip
+
+# 🚀 Deploy folders (เฉพาะถ้าสร้าง release สำรองไว้)
+release/
+backup_v*/ 
+
+# Local Netlify folder
+.netlify
