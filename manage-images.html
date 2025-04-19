@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🗂 จัดการรูปภาพวันทิ้งขยะ</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="/trashday/env.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      img {
+        max-height: 100px;
+      }
+      select,
+      button {
+        margin-top: 0.25rem;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 min-h-screen text-gray-800">
+    <div class="max-w-4xl mx-auto p-4">
+      <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <h1 class="text-2xl font-bold text-blue-700">
+          🗂 จัดการรูปภาพวันทิ้งขยะ
+        </h1>
+        <p class="text-sm mt-1">เฉพาะผู้ดูแลระบบเท่านั้น</p>
+      </div>
+      <div id="imageList" class="space-y-4"></div>
+    </div>
+
+    <script>
+      const SHEET_URL =
+        "https://script.google.com/macros/s/AKfycbyWtwP_T6j8Cn1QAp3GP6cOQjEvedrn268B-fezs1RF2Wv5U5xADNsArZf80WcHGozW/exec";
+      const ADMIN_IDS = [
+        "U48acc7ea54fae2b756e828dc169ef02f",
+        "U2e659c4cb3c4a729caf28cd16b9aa5fc",
+      ]; // ใส่ LINE userId ผู้ดูแลระบบ GAS Bot - niyata / iworn
+
+      async function init() {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) return liff.login();
+
+        const profile = await liff.getProfile();
+        const userId = profile.userId;
+
+        if (!ADMIN_IDS.includes(userId)) {
+          document.body.innerHTML =
+            "<div class='p-8 text-center text-red-600 text-lg font-bold'>🚫 ไม่ได้รับอนุญาตให้เข้าถึงหน้านี้</div>";
+          return;
+        }
+
+        const res = await fetch(SHEET_URL + "?action=listImages");
+        const images = await res.json();
+
+        const container = document.getElementById("imageList");
+        images.forEach((img, index) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "bg-white rounded-lg shadow p-4";
+          wrapper.innerHTML = `
+          <div class="flex items-center space-x-4">
+            <img src="${img.url}" class="rounded border" />
+            <div class="flex-1">
+              <label>📅 วัน:</label>
+              <select id="day-${index}">
+                ${[
+                  "วันจันทร์",
+                  "วันอังคาร",
+                  "วันพุธ",
+                  "วันพฤหัสบดี",
+                  "วันศุกร์",
+                  "วันเสาร์",
+                  "วันอาทิตย์",
+                ]
+                  .map(
+                    (d) =>
+                      `<option value="${d}" ${
+                        img.day === d ? "selected" : ""
+                      }>${d}</option>`
+                  )
+                  .join("")}
+              </select>
+              <label>🔢 สัปดาห์:</label>
+              <select id="week-${index}">
+                ${[1, 2, 3, 4]
+                  .map(
+                    (w) =>
+                      `<option value="${w}" ${
+                        img.week == w ? "selected" : ""
+                      }>${w}</option>`
+                  )
+                  .join("")}
+              </select>
+              <button onclick="save(${index}, '${
+            img.url
+          }')" class="ml-2 bg-blue-600 text-white px-3 py-1 rounded">💾 บันทึก</button>
+            </div>
+          </div>
+        `;
+          container.appendChild(wrapper);
+        });
+      }
+
+      async function save(index, url) {
+        const day = document.getElementById(`day-${index}`).value;
+        const week = document.getElementById(`week-${index}`).value;
+
+        const body = { action: "saveImageMeta", imageUrl: url, day, week };
+        const res = await fetch(SHEET_URL, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        const text = await res.text();
+        alert(text);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

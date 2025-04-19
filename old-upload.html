@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>📤 อัปโหลดรูป Supabase (ล็อกอินด้วย LINE)</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="/trashday/env.js"></script>
+    <script src="/trashday/supabase.js"></script>
+  </head>
+  <body>
+    <h2>📥 ยินดีต้อนรับ <span id="displayName">...</span></h2>
+    <input type="file" id="fileInput" /><br />
+    <button onclick="upload()">Upload</button>
+    <p id="result"></p>
+
+    <script>
+      const ALLOWED_USER_IDS = ["Uxxxxxxxxx"]; // ใส่ userId ที่อนุญาต
+
+      async function main() {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        document.getElementById("displayName").innerText = profile.displayName;
+
+        // ตรวจสอบสิทธิ์ผู้ใช้
+        if (!ALLOWED_USER_IDS.includes(profile.userId)) {
+          alert("❌ คุณไม่มีสิทธิ์อัปโหลดรูปภาพ");
+          document.getElementById("fileInput").disabled = true;
+        }
+
+        window.userId = profile.userId; // ไว้ใช้แนบใน log หรือส่งไป backend
+      }
+
+      main();
+
+      async function upload() {
+        const file = document.getElementById("fileInput").files[0];
+        if (!file) return alert("กรุณาเลือกไฟล์");
+
+        const filename = `trash-${Date.now()}-${file.name}`;
+        const { data, error } = await supabase.storage
+          .from("trash-images")
+          .upload(filename, file);
+
+        if (error) {
+          document.getElementById("result").innerText =
+            "❌ Upload failed: " + error.message;
+          return;
+        }
+
+        const publicUrl = supabase.storage
+          .from("trash-images")
+          .getPublicUrl(filename).data.publicUrl;
+        document.getElementById(
+          "result"
+        ).innerHTML = `✅ สำเร็จ!<br>🔗 <a href="${publicUrl}" target="_blank">${publicUrl}</a>`;
+      }
+    </script>
+  </body>
+</html>

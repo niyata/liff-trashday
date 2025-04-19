@@ -1,0 +1,8 @@
+
+[build]
+publish = "netlify"
+
+[[redirects]]
+from = "/trashday/*"
+to = "/trashday/:splat"
+status = 200

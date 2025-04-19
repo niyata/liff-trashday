@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <title>📊 LIFF Trash Day Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="/trashday/env.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100 text-gray-800 min-h-screen">
+    <div class="max-w-3xl mx-auto py-10 px-4">
+      <div class="bg-white p-6 rounded-xl shadow">
+        <h1 class="text-2xl font-bold text-blue-600">
+          🗂 Dashboard ระบบแจ้งเตือนวันทิ้งขยะ
+        </h1>
+        <p class="text-sm text-gray-600 mt-1">
+          สรุปสถานะระบบ + ลิงก์เครื่องมือ
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+        <a
+          href="upload.html"
+          class="block bg-white p-4 rounded-xl shadow hover:bg-blue-50"
+        >
+          <h2 class="font-semibold text-blue-700 text-lg">📤 อัปโหลดรูปภาพ</h2>
+          <p class="text-sm text-gray-600">
+            สำหรับผู้ใช้งานทั่วไป อัปโหลดรูปภาพวันทิ้งขยะ
+          </p>
+        </a>
+
+        <a
+          href="manage-images.html"
+          class="block bg-white p-4 rounded-xl shadow hover:bg-green-50"
+        >
+          <h2 class="font-semibold text-green-700 text-lg">
+            🗂 จัดการรูปภาพ (Admin)
+          </h2>
+          <p class="text-sm text-gray-600">
+            แก้ไขวันและสัปดาห์ของรูปภาพที่อัปโหลด
+          </p>
+        </a>
+
+        <a
+          href="flex-editor.html"
+          class="block bg-white p-4 rounded-xl shadow hover:bg-yellow-50"
+        >
+          <h2 class="font-semibold text-yellow-700 text-lg">
+            📝 Flex Message Editor
+          </h2>
+          <p class="text-sm text-gray-600">
+            สร้าง แก้ไข แชร์ และ Push Flex Message
+          </p>
+        </a>
+
+        <a
+          href="https://docs.google.com/spreadsheets/d/1am5am38rrZjYqr04nTW78O9wJFe3zAdzQSgwdW246Tw"
+          target="_blank"
+          class="block bg-white p-4 rounded-xl shadow hover:bg-gray-50"
+        >
+          <h2 class="font-semibold text-gray-700 text-lg">📊 Google Sheet</h2>
+          <p class="text-sm text-gray-600">
+            ดูข้อมูลภาพ และ Flex Template ที่ถูกบันทึก
+          </p>
+        </a>
+      </div>
+
+      <div class="bg-white mt-6 p-4 rounded-xl shadow">
+        <h3 class="font-semibold text-gray-800 mb-2">📡 สถานะระบบ</h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+          <li>
+            ✅ เชื่อม LIFF ID:
+            <code class="text-green-700 font-mono">1661018679-Nd4A5ddm</code>
+          </li>
+          <li>
+            ✅ Google Sheet ID:
+            <code class="font-mono"
+              >1am5am38rrZjYqr04nTW78O9wJFe3zAdzQSgwdW246Tw</code
+            >
+          </li>
+          <li>
+            ✅ Supabase Bucket: <code class="font-mono">trash-images</code>
+          </li>
+          <li>
+            ✅ GAS Webhook:
+            <code class="font-mono"
+              >https://script.google.com/macros/s/YOUR_DEPLOY_ID/exec</code
+            >
+          </li>
+          <li>
+            🌐 Netlify Domain:
+            <code class="font-mono">https://app.watsaitama.com/</code>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

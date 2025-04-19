@@ -1,0 +1,1 @@
+const supabase = supabase.createClient('https://mbsnhoicwffwuvzfmggy.supabase.co', 'SUPABASE_PUBLIC_ANON_KEY');

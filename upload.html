@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <title>📤 อัปโหลดรูปภาพวันทิ้งขยะ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="/trashday/env.js"></script>
+    <script src="/trashday/supabase.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="max-w-xl mx-auto mt-10 p-4">
+      <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
+        <h2 class="text-2xl font-bold text-blue-600">
+          📤 อัปโหลดรูปภาพวันทิ้งขยะ
+        </h2>
+        <p class="text-sm text-gray-600">
+          จำเป็นต้องเข้าสู่ระบบผ่าน LINE ก่อนใช้งาน
+        </p>
+
+        <div>
+          <label class="block text-sm font-medium"
+            >เลือกรูปภาพ (JPEG, PNG)</label
+          >
+          <input
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            class="w-full mt-1"
+          />
+        </div>
+
+        <button
+          onclick="uploadImage()"
+          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full"
+        >
+          🚀 อัปโหลด
+        </button>
+
+        <div id="result" class="text-sm mt-3 text-gray-700"></div>
+      </div>
+    </div>
+
+    <script>
+      const GAS_URL =
+        "https://script.google.com/macros/s/AKfycbyWtwP_T6j8Cn1QAp3GP6cOQjEvedrn268B-fezs1RF2Wv5U5xADNsArZf80WcHGozW/exec";
+
+      let userId = "";
+
+      async function init() {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) return liff.login();
+
+        const profile = await liff.getProfile();
+        userId = profile.userId;
+      }
+
+      async function uploadImage() {
+        const file = document.getElementById("fileInput").files[0];
+        if (!file) return alert("กรุณาเลือกรูปภาพก่อน");
+
+        const filename = `trash-${Date.now()}.${file.name.split(".").pop()}`;
+        const { data, error } = await supabase.storage
+          .from("trash-images")
+          .upload(filename, file);
+
+        if (error)
+          return (document.getElementById("result").innerText =
+            "❌ อัปโหลดล้มเหลว: " + error.message);
+
+        const imageUrl = `https://mbsnhoicwffwuvzfmggy.supabase.co/storage/v1/object/public/trash-images/${filename}`;
+
+        const postRes = await fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "saveImageMeta",
+            imageUrl,
+            day: "", // ยังไม่ระบุในขั้น upload
+            week: "",
+            uploadedBy: userId,
+          }),
+        });
+
+        const text = await postRes.text();
+        document.getElementById(
+          "result"
+        ).innerHTML = `✅ สำเร็จ: <a href="${imageUrl}" class="text-blue-600 underline" target="_blank">ดูรูป</a><br/>${text}`;
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <title>📝 Flex Message Editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="/trashday/env.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="max-w-2xl mx-auto mt-10 p-4">
+      <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
+        <h2 class="text-2xl font-bold text-blue-600">📝 Flex Message Editor</h2>
+
+        <div>
+          <label class="block text-sm font-medium">หัวข้อ</label>
+          <input
+            id="title"
+            type="text"
+            class="w-full border p-2 rounded"
+            placeholder="เช่น แจ้งวันทิ้งขยะ"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium">เนื้อหา</label>
+          <textarea
+            id="message"
+            rows="3"
+            class="w-full border p-2 rounded"
+            placeholder="รายละเอียดที่จะแสดงใน Flex"
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium">วันที่ / สัปดาห์</label>
+          <input
+            id="dateinfo"
+            type="text"
+            class="w-full border p-2 rounded"
+            placeholder="เช่น 2025/04/20 | สัปดาห์ที่ 3"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium">URL รูปภาพ</label>
+          <input
+            id="imageurl"
+            type="url"
+            class="w-full border p-2 rounded"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div class="flex space-x-2">
+          <button
+            onclick="previewFlex()"
+            class="w-full bg-yellow-500 text-white p-2 rounded"
+          >
+            🔍 ดูตัวอย่าง
+          </button>
+          <button
+            onclick="shareFlex()"
+            class="w-full bg-green-600 text-white p-2 rounded"
+          >
+            📤 แชร์ผ่าน LINE
+          </button>
+        </div>
+
+        <div class="flex space-x-2">
+          <button
+            onclick="saveTemplate()"
+            class="w-full bg-blue-600 text-white p-2 rounded"
+          >
+            💾 บันทึก Template
+          </button>
+          <select
+            id="templateList"
+            onchange="loadTemplate()"
+            class="w-full border p-2 rounded bg-gray-50"
+          >
+            <option value="">📂 เลือก Template</option>
+          </select>
+          <button
+            onclick="pushFlex()"
+            class="w-full bg-indigo-700 text-white p-2 rounded"
+          >
+            🚀 Push
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white mt-6 p-4 rounded-xl shadow-md">
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">
+          🧪 ตัวอย่าง Flex
+        </h3>
+        <pre
+          id="flexpreview"
+          class="bg-gray-50 p-3 rounded-md text-xs overflow-x-auto whitespace-pre-wrap text-gray-700"
+        >
+กรอกข้อมูลด้านบนเพื่อดูตัวอย่าง</pre
+        >
+      </div>
+    </div>
+
+    <script>
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbyWtwP_T6j8Cn1QAp3GP6cOQjEvedrn268B-fezs1RF2Wv5U5xADNsArZf80WcHGozW/exec";
+
+      async function previewFlex() {
+        const flex = buildFlexObject();
+        document.getElementById("flexpreview").innerText = JSON.stringify(
+          flex,
+          null,
+          2
+        );
+        window.latestFlex = flex;
+      }
+
+      async function shareFlex() {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) return liff.login();
+
+        const flex = buildFlexObject();
+        await liff.shareTargetPicker([
+          { type: "flex", altText: flex.body.contents[0].text, contents: flex },
+        ]);
+        alert("✅ แชร์สำเร็จ");
+      }
+
+      function buildFlexObject() {
+        return {
+          type: "bubble",
+          hero: {
+            type: "image",
+            url: document.getElementById("imageurl").value,
+            size: "full",
+            aspectMode: "cover",
+          },
+          body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: document.getElementById("title").value,
+                weight: "bold",
+                size: "lg",
+              },
+              {
+                type: "text",
+                text: document.getElementById("message").value,
+                size: "md",
+                wrap: true,
+                margin: "md",
+              },
+              {
+                type: "text",
+                text: document.getElementById("dateinfo").value,
+                size: "sm",
+                color: "#999",
+                margin: "md",
+              },
+            ],
+          },
+        };
+      }
+
+      async function saveTemplate() {
+        const body = {
+          action: "saveTemplate",
+          title: document.getElementById("title").value,
+          message: document.getElementById("message").value,
+          dateinfo: document.getElementById("dateinfo").value,
+          imageurl: document.getElementById("imageurl").value,
+        };
+
+        await fetch(API_URL, { method: "POST", body: JSON.stringify(body) });
+        alert("💾 บันทึก Template แล้ว");
+        loadTemplateList(); // refresh dropdown
+      }
+
+      async function loadTemplateList() {
+        const res = await fetch(API_URL + "?action=getTemplates");
+        const data = await res.json();
+        const list = document.getElementById("templateList");
+        list.innerHTML = '<option value="">📂 เลือก Template</option>';
+        data.forEach((t) => {
+          const opt = document.createElement("option");
+          opt.value = t.id;
+          opt.textContent = t.title;
+          list.appendChild(opt);
+        });
+      }
+
+      async function loadTemplate() {
+        const id = document.getElementById("templateList").value;
+        if (!id) return;
+        const res = await fetch(API_URL + "?action=getTemplate&id=" + id);
+        const t = await res.json();
+        document.getElementById("title").value = t.title;
+        document.getElementById("message").value = t.message;
+        document.getElementById("dateinfo").value = t.dateinfo;
+        document.getElementById("imageurl").value = t.imageurl;
+        previewFlex();
+      }
+
+      async function pushFlex() {
+        const body = {
+          action: "pushFlex",
+          title: document.getElementById("title").value,
+          message: document.getElementById("message").value,
+          dateinfo: document.getElementById("dateinfo").value,
+          imageurl: document.getElementById("imageurl").value,
+        };
+
+        await fetch(API_URL, { method: "POST", body: JSON.stringify(body) });
+        alert("🚀 Push Flex สำเร็จ");
+      }
+
+      window.onload = loadTemplateList;
+    </script>
+  </body>
+</html>
