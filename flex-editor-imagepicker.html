@@ -1,178 +1,256 @@
-
 <!DOCTYPE html>
 <html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <title>Flex Editor + Image Picker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="/trashday/env.js"></script>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    .modal-bg { background-color: rgba(0,0,0,0.6); }
-    .tab-btn.active { @apply border-b-2 border-blue-600 text-blue-600; }
-  </style>
-</head>
-<body class="bg-gray-100 text-gray-800">
-  <div class="max-w-2xl mx-auto mt-10 p-4">
-    <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
-      <h2 class="text-2xl font-bold text-blue-600">📝 Flex Message Editor</h2>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Flex Editor Picker (Fixed)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="/trashday/env.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="max-w-2xl mx-auto mt-10 p-4">
+      <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
+        <h2 class="text-2xl font-bold text-blue-600">
+          📦 Flex Editor Picker (Fixed)
+        </h2>
 
-      <div><label class="block text-sm font-medium">หัวข้อ</label><input id="title" type="text" class="w-full border p-2 rounded" placeholder="เช่น แจ้งวันทิ้งขยะ" /></div>
-      <div><label class="block text-sm font-medium">เนื้อหา</label><textarea id="message" rows="3" class="w-full border p-2 rounded" placeholder="รายละเอียดที่จะแสดงใน Flex"></textarea></div>
-      <div><label class="block text-sm font-medium">วันที่ / สัปดาห์</label><input id="dateinfo" type="text" class="w-full border p-2 rounded" placeholder="เช่น 2025/04/20 | สัปดาห์ที่ 3" /></div>
-      <div>
-        <label class="block text-sm font-medium">URL รูปภาพ</label>
-        <div class="flex gap-2 mt-1">
-          <input id="imageurl" type="url" class="flex-1 border p-2 rounded" placeholder="https://..." />
-          <button onclick="toggleModal(true)" class="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded">📷 เลือกรูป</button>
+        <input
+          id="title"
+          type="text"
+          placeholder="หัวข้อ"
+          class="w-full border p-2 rounded"
+        />
+        <textarea
+          id="message"
+          placeholder="เนื้อหา"
+          class="w-full border p-2 rounded"
+        ></textarea>
+        <input
+          id="dateinfo"
+          placeholder="วันที่ / สัปดาห์"
+          class="w-full border p-2 rounded"
+        />
+
+        <div>
+          <label class="block mb-1">URL รูปภาพ</label>
+          <div class="flex gap-2">
+            <input
+              id="imageurl"
+              type="url"
+              placeholder="https://..."
+              class="flex-1 border p-2 rounded"
+            />
+            <button
+              onclick="toggleModal(true)"
+              class="bg-gray-200 px-3 py-2 rounded"
+            >
+              📷 เลือกรูป
+            </button>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button
+            onclick="previewFlex()"
+            class="w-full bg-yellow-500 text-white p-2 rounded"
+          >
+            🔍 ดูตัวอย่าง
+          </button>
+          <button
+            onclick="shareFlex()"
+            class="w-full bg-green-600 text-white p-2 rounded"
+          >
+            📤 แชร์ผ่าน LINE
+          </button>
         </div>
       </div>
 
-      <div class="flex space-x-2">
-        <button onclick="previewFlex()" class="w-full bg-yellow-500 text-white p-2 rounded">🔍 ดูตัวอย่าง</button>
-        <button onclick="shareFlex()" class="w-full bg-green-600 text-white p-2 rounded">📤 แชร์ผ่าน LINE</button>
+      <div class="mt-6 bg-white p-4 rounded shadow">
+        <h3 class="font-semibold text-gray-700 mb-2">🔎 Flex Preview</h3>
+        <pre
+          id="flexpreview"
+          class="bg-gray-50 p-3 text-xs whitespace-pre-wrap text-gray-800"
+        ></pre>
       </div>
     </div>
 
-    <div class="bg-white mt-6 p-4 rounded-xl shadow-md">
-      <h3 class="text-lg font-semibold mb-2 text-gray-700">🧪 ตัวอย่าง Flex</h3>
-      <pre id="flexpreview" class="bg-gray-50 p-3 rounded-md text-xs overflow-x-auto whitespace-pre-wrap text-gray-700">กรอกข้อมูลด้านบนเพื่อดูตัวอย่าง</pre>
+    <!-- Modal -->
+    <div
+      id="imageModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 justify-center items-center"
+    >
+      <div class="bg-white rounded-xl w-full max-w-xl p-4 shadow-xl">
+        <div class="flex justify-between mb-4">
+          <h2 class="text-xl font-semibold">เลือกรูปภาพ</h2>
+          <button onclick="toggleModal(false)">✕</button>
+        </div>
+        <div class="flex space-x-4 mb-3">
+          <button
+            onclick="switchTab('upload')"
+            id="tab-upload"
+            class="border-b-2 border-blue-600"
+          >
+            📤 อัปโหลด
+          </button>
+          <button onclick="switchTab('library')" id="tab-library">
+            🖼️ คลังภาพ
+          </button>
+        </div>
+
+        <div id="upload-section">
+          <label
+            for="uploadInput"
+            class="block w-full p-6 border-2 border-dashed text-center rounded hover:bg-gray-50 cursor-pointer"
+          >
+            📁 คลิกหรือวางไฟล์ที่นี่
+          </label>
+          <input type="file" id="uploadInput" class="hidden" accept="image/*" />
+          <div id="uploadPreview" class="text-center mt-2"></div>
+          <button
+            id="uploadBtn"
+            class="hidden bg-blue-600 text-white w-full mt-2 py-2 rounded"
+          >
+            🚀 อัปโหลด
+          </button>
+        </div>
+
+        <div id="library-section" class="hidden">
+          <div id="libraryImages" class="grid grid-cols-3 gap-3 mt-2"></div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <!-- Modal -->
-  <div id="imageModal" class="modal-bg fixed inset-0 z-50 hidden flex items-center justify-center">
-    <div class="bg-white w-full max-w-xl rounded-xl p-4 shadow-xl">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-800">เลือกรูปภาพ</h2>
-        <button onclick="toggleModal(false)" class="text-gray-400 hover:text-black">✕</button>
-      </div>
-      <div class="flex border-b mb-4 space-x-2 text-sm">
-        <button class="tab-btn px-4 py-2 active" onclick="showTab('uploadTab')">📤 อัปโหลด</button>
-        <button class="tab-btn px-4 py-2" onclick="showTab('libraryTab')">🖼️ คลังภาพ</button>
-      </div>
-      <div id="uploadTab">
-        <label for="uploadInput" class="block text-center border-2 border-dashed border-gray-300 rounded p-6 cursor-pointer hover:bg-gray-50">📁 คลิกหรือวางไฟล์รูปภาพที่นี่</label>
-        <input type="file" id="uploadInput" class="hidden" accept="image/*">
-        <div id="uploadPreview" class="text-center mt-3"></div>
-        <div id="uploadProgress" class="hidden w-full bg-gray-200 rounded mt-3 h-2"><div class="bg-blue-500 h-2 rounded" style="width: 0%"></div></div>
-        <button id="uploadBtn" class="hidden bg-blue-600 text-white px-4 py-2 mt-3 rounded w-full">🚀 อัปโหลด</button>
-      </div>
-      <div id="libraryTab" class="hidden">
-        <div id="libraryImages" class="grid grid-cols-3 gap-3 mt-3"></div>
-      </div>
-    </div>
-  </div>
+    <script>
+      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const imageurlInput = document.getElementById("imageurl");
 
-<script>
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const uploadInput = document.getElementById("uploadInput");
-const preview = document.getElementById("uploadPreview");
-const uploadBtn = document.getElementById("uploadBtn");
-const progress = document.getElementById("uploadProgress");
-const progressBar = progress.querySelector("div");
+      function toggleModal(show) {
+        document.getElementById("imageModal").classList.toggle("hidden", !show);
+      }
 
-function toggleModal(show) {
-  document.getElementById("imageModal").classList.toggle("hidden", !show);
-}
-function showTab(tab) {
-  document.getElementById("uploadTab").classList.add("hidden");
-  document.getElementById("libraryTab").classList.add("hidden");
-  document.getElementById(tab).classList.remove("hidden");
-}
+      function switchTab(tab) {
+        document
+          .getElementById("upload-section")
+          .classList.toggle("hidden", tab !== "upload");
+        document
+          .getElementById("library-section")
+          .classList.toggle("hidden", tab !== "library");
+        document
+          .getElementById("tab-upload")
+          .classList.toggle("border-blue-600", tab === "upload");
+        document
+          .getElementById("tab-library")
+          .classList.toggle("border-blue-600", tab === "library");
+        if (tab === "library") loadLibrary();
+      }
 
-uploadInput.addEventListener("change", () => {
-  const file = uploadInput.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  preview.innerHTML = `<img src="\${url}" class="mx-auto max-h-40 rounded shadow">`;
-  uploadBtn.classList.remove("hidden");
-});
+      // ✅ อัปโหลด
+      document.getElementById("uploadInput").addEventListener("change", () => {
+        const file = document.getElementById("uploadInput").files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        document.getElementById(
+          "uploadPreview"
+        ).innerHTML = `<img src="\${url}" class="mx-auto h-32">`;
+        document.getElementById("uploadBtn").classList.remove("hidden");
+      });
 
-uploadBtn.addEventListener("click", async () => {
-  const file = uploadInput.files[0];
-  if (!file) return;
-  const fileName = Date.now() + "-" + file.name;
-  progress.classList.remove("hidden");
+      document
+        .getElementById("uploadBtn")
+        .addEventListener("click", async () => {
+          const file = document.getElementById("uploadInput").files[0];
+          const fileName = Date.now() + "-" + file.name;
+          const { error } = await supabase.storage
+            .from("trash-images")
+            .upload(fileName, file);
+          if (error) return alert("อัปโหลดผิดพลาด");
 
-  const { error } = await supabase.storage.from("trash-images").upload(fileName, file);
-  if (error) return alert("อัปโหลดผิดพลาด: " + error.message);
+          const { data } = supabase.storage
+            .from("trash-images")
+            .getPublicUrl(fileName);
+          imageurlInput.value = data.publicUrl;
+          toggleModal(false);
+        });
 
-  const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(fileName);
-  document.getElementById("imageurl").value = urlObj.publicUrl;
-  progressBar.style.width = "100%";
-  toggleModal(false);
-});
+      // ✅ เลือกรูปจากคลัง
+      async function loadLibrary() {
+        const { data } = await supabase.storage.from("trash-images").list();
+        const box = document.getElementById("libraryImages");
+        box.innerHTML = "";
+        data.forEach((img) => {
+          const { data: pub } = supabase.storage
+            .from("trash-images")
+            .getPublicUrl(img.name);
+          const el = document.createElement("img");
+          el.src = pub.publicUrl;
+          el.className = "rounded cursor-pointer hover:opacity-80";
+          el.onclick = () => {
+            imageurlInput.value = el.src;
+            toggleModal(false);
+          };
+          box.appendChild(el);
+        });
+      }
 
-async function loadImages() {
-  const { data } = await supabase.storage.from("trash-images").list("", { limit: 100 });
-  const container = document.getElementById("libraryImages");
-  container.innerHTML = "";
-  data?.forEach(item => {
-    const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(item.name);
-    const img = document.createElement("img");
-    img.src = urlObj.publicUrl;
-    img.className = "rounded cursor-pointer hover:opacity-80 border border-gray-200 shadow";
-    img.onclick = () => {
-      document.getElementById("imageurl").value = img.src;
-      toggleModal(false);
-    };
-    container.appendChild(img);
-  });
-}
+      // ✅ Flex
+      function previewFlex() {
+        const flex = {
+          type: "bubble",
+          hero: {
+            type: "image",
+            url: imageurlInput.value,
+            size: "full",
+            aspectMode: "cover",
+          },
+          body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: document.getElementById("title").value,
+                weight: "bold",
+                size: "lg",
+              },
+              {
+                type: "text",
+                text: document.getElementById("message").value,
+                size: "md",
+                wrap: true,
+              },
+              {
+                type: "text",
+                text: document.getElementById("dateinfo").value,
+                size: "sm",
+                color: "#999",
+                margin: "md",
+              },
+            ],
+          },
+        };
+        document.getElementById("flexpreview").innerText = JSON.stringify(
+          flex,
+          null,
+          2
+        );
+      }
 
-document.querySelector('[onclick="showTab(\'libraryTab\')"]').addEventListener("click", loadImages);
-
-function previewFlex() {
-  const flex = {
-    type: "bubble",
-    hero: {
-      type: "image",
-      url: document.getElementById("imageurl").value,
-      size: "full",
-      aspectMode: "cover",
-    },
-    body: {
-      type: "box",
-      layout: "vertical",
-      contents: [
-        { type: "text", text: document.getElementById("title").value, weight: "bold", size: "lg" },
-        { type: "text", text: document.getElementById("message").value, wrap: true, margin: "md", size: "md" },
-        { type: "text", text: document.getElementById("dateinfo").value, size: "sm", color: "#999", margin: "md" }
-      ]
-    }
-  };
-  document.getElementById("flexpreview").innerText = JSON.stringify(flex, null, 2);
-}
-
-async function shareFlex() {
-  await liff.init({ liffId: LIFF_ID });
-  if (!liff.isLoggedIn()) return liff.login();
-
-  const flex = {
-    type: "bubble",
-    hero: {
-      type: "image",
-      url: document.getElementById("imageurl").value,
-      size: "full",
-      aspectMode: "cover",
-    },
-    body: {
-      type: "box",
-      layout: "vertical",
-      contents: [
-        { type: "text", text: document.getElementById("title").value, weight: "bold", size: "lg" },
-        { type: "text", text: document.getElementById("message").value, wrap: true, margin: "md", size: "md" },
-        { type: "text", text: document.getElementById("dateinfo").value, size: "sm", color: "#999", margin: "md" }
-      ]
-    }
-  };
-
-  await liff.shareTargetPicker([{ type: "flex", altText: flex.body.contents[0].text, contents: flex }]);
-  alert("✅ แชร์สำเร็จ");
-}
-</script>
-</body>
+      async function shareFlex() {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) liff.login();
+        const flex = JSON.parse(
+          document.getElementById("flexpreview").innerText
+        );
+        await liff.shareTargetPicker([
+          { type: "flex", altText: flex.body.contents[0].text, contents: flex },
+        ]);
+        alert("✅ แชร์ Flex สำเร็จ");
+      }
+    </script>
+  </body>
 </html>
