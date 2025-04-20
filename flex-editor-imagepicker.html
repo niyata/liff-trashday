@@ -1,50 +1,71 @@
 
-<!-- แทรกปุ่มเลือกรูปภาพข้าง imageurl -->
-<div class="flex items-center gap-2 mt-2">
-  <input
-    id="imageurl"
-    type="url"
-    class="flex-1 border p-2 rounded"
-    placeholder="https://..."
-  />
-  <button
-    type="button"
-    class="bg-gray-200 hover:bg-gray-300 text-sm px-3 py-2 rounded"
-    onclick="document.getElementById('imageModal').classList.remove('hidden')"
-  >
-    📷 เลือกรูป
-  </button>
-</div>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flex Editor + Image Picker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="/trashday/env.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .modal-bg { background-color: rgba(0,0,0,0.6); }
+    .tab-btn.active { @apply border-b-2 border-blue-600 text-blue-600; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="max-w-2xl mx-auto mt-10 p-4">
+    <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
+      <h2 class="text-2xl font-bold text-blue-600">📝 Flex Message Editor</h2>
 
-<!-- Modal: เลือกรูปภาพ -->
-<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white w-full max-w-2xl rounded-xl p-4 shadow-xl">
-    <div class="flex justify-between items-center mb-3">
-      <h2 class="text-lg font-semibold">เลือกรูปภาพ</h2>
-      <button onclick="closeImageModal()" class="text-gray-500 hover:text-black">✕</button>
-    </div>
-    <div>
-      <ul class="flex border-b text-sm mb-4">
-        <li><button class="px-4 py-2 border-b-2 border-blue-500" onclick="showTab('uploadTab')">📤 อัปโหลด</button></li>
-        <li><button class="px-4 py-2" onclick="showTab('libraryTab')">🖼️ คลังภาพ</button></li>
-      </ul>
-      <div id="uploadTab">
-        <label for="uploadInput" class="block w-full text-center py-6 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">📁 คลิกหรือวางรูปที่นี่</label>
-        <input type="file" id="uploadInput" class="hidden" accept="image/*" />
-        <div id="uploadPreview" class="mt-2 text-center"></div>
-        <div id="uploadProgress" class="w-full bg-gray-200 rounded h-2 mt-2 hidden">
-          <div class="bg-green-500 h-2 rounded" style="width: 0%"></div>
+      <div><label class="block text-sm font-medium">หัวข้อ</label><input id="title" type="text" class="w-full border p-2 rounded" placeholder="เช่น แจ้งวันทิ้งขยะ" /></div>
+      <div><label class="block text-sm font-medium">เนื้อหา</label><textarea id="message" rows="3" class="w-full border p-2 rounded" placeholder="รายละเอียดที่จะแสดงใน Flex"></textarea></div>
+      <div><label class="block text-sm font-medium">วันที่ / สัปดาห์</label><input id="dateinfo" type="text" class="w-full border p-2 rounded" placeholder="เช่น 2025/04/20 | สัปดาห์ที่ 3" /></div>
+      <div>
+        <label class="block text-sm font-medium">URL รูปภาพ</label>
+        <div class="flex gap-2 mt-1">
+          <input id="imageurl" type="url" class="flex-1 border p-2 rounded" placeholder="https://..." />
+          <button onclick="toggleModal(true)" class="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded">📷 เลือกรูป</button>
         </div>
-        <button id="uploadBtn" class="bg-green-600 text-white px-4 py-2 mt-2 rounded hidden">🚀 อัปโหลด</button>
+      </div>
+
+      <div class="flex space-x-2">
+        <button onclick="previewFlex()" class="w-full bg-yellow-500 text-white p-2 rounded">🔍 ดูตัวอย่าง</button>
+        <button onclick="shareFlex()" class="w-full bg-green-600 text-white p-2 rounded">📤 แชร์ผ่าน LINE</button>
+      </div>
+    </div>
+
+    <div class="bg-white mt-6 p-4 rounded-xl shadow-md">
+      <h3 class="text-lg font-semibold mb-2 text-gray-700">🧪 ตัวอย่าง Flex</h3>
+      <pre id="flexpreview" class="bg-gray-50 p-3 rounded-md text-xs overflow-x-auto whitespace-pre-wrap text-gray-700">กรอกข้อมูลด้านบนเพื่อดูตัวอย่าง</pre>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="imageModal" class="modal-bg fixed inset-0 z-50 hidden flex items-center justify-center">
+    <div class="bg-white w-full max-w-xl rounded-xl p-4 shadow-xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">เลือกรูปภาพ</h2>
+        <button onclick="toggleModal(false)" class="text-gray-400 hover:text-black">✕</button>
+      </div>
+      <div class="flex border-b mb-4 space-x-2 text-sm">
+        <button class="tab-btn px-4 py-2 active" onclick="showTab('uploadTab')">📤 อัปโหลด</button>
+        <button class="tab-btn px-4 py-2" onclick="showTab('libraryTab')">🖼️ คลังภาพ</button>
+      </div>
+      <div id="uploadTab">
+        <label for="uploadInput" class="block text-center border-2 border-dashed border-gray-300 rounded p-6 cursor-pointer hover:bg-gray-50">📁 คลิกหรือวางไฟล์รูปภาพที่นี่</label>
+        <input type="file" id="uploadInput" class="hidden" accept="image/*">
+        <div id="uploadPreview" class="text-center mt-3"></div>
+        <div id="uploadProgress" class="hidden w-full bg-gray-200 rounded mt-3 h-2"><div class="bg-blue-500 h-2 rounded" style="width: 0%"></div></div>
+        <button id="uploadBtn" class="hidden bg-blue-600 text-white px-4 py-2 mt-3 rounded w-full">🚀 อัปโหลด</button>
       </div>
       <div id="libraryTab" class="hidden">
-        <div id="libraryImages" class="grid grid-cols-3 gap-2 mt-2"></div>
+        <div id="libraryImages" class="grid grid-cols-3 gap-3 mt-3"></div>
       </div>
     </div>
   </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const uploadInput = document.getElementById("uploadInput");
@@ -53,21 +74,20 @@ const uploadBtn = document.getElementById("uploadBtn");
 const progress = document.getElementById("uploadProgress");
 const progressBar = progress.querySelector("div");
 
-function closeImageModal() {
-  document.getElementById("imageModal").classList.add("hidden");
+function toggleModal(show) {
+  document.getElementById("imageModal").classList.toggle("hidden", !show);
 }
-function showTab(tabId) {
+function showTab(tab) {
   document.getElementById("uploadTab").classList.add("hidden");
   document.getElementById("libraryTab").classList.add("hidden");
-  document.getElementById(tabId).classList.remove("hidden");
-  if (tabId === "libraryTab") loadImages();
+  document.getElementById(tab).classList.remove("hidden");
 }
 
 uploadInput.addEventListener("change", () => {
   const file = uploadInput.files[0];
   if (!file) return;
   const url = URL.createObjectURL(file);
-  preview.innerHTML = `<img src="${url}" class="mx-auto max-h-40 rounded">`;
+  preview.innerHTML = `<img src="\${url}" class="mx-auto max-h-40 rounded shadow">`;
   uploadBtn.classList.remove("hidden");
 });
 
@@ -83,23 +103,76 @@ uploadBtn.addEventListener("click", async () => {
   const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(fileName);
   document.getElementById("imageurl").value = urlObj.publicUrl;
   progressBar.style.width = "100%";
-  closeImageModal();
+  toggleModal(false);
 });
 
 async function loadImages() {
   const { data } = await supabase.storage.from("trash-images").list("", { limit: 100 });
-  const box = document.getElementById("libraryImages");
-  box.innerHTML = "";
+  const container = document.getElementById("libraryImages");
+  container.innerHTML = "";
   data?.forEach(item => {
     const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(item.name);
-    const btn = document.createElement("img");
-    btn.src = urlObj.publicUrl;
-    btn.className = "w-full rounded cursor-pointer hover:opacity-80";
-    btn.onclick = () => {
-      document.getElementById("imageurl").value = btn.src;
-      closeImageModal();
+    const img = document.createElement("img");
+    img.src = urlObj.publicUrl;
+    img.className = "rounded cursor-pointer hover:opacity-80 border border-gray-200 shadow";
+    img.onclick = () => {
+      document.getElementById("imageurl").value = img.src;
+      toggleModal(false);
     };
-    box.appendChild(btn);
+    container.appendChild(img);
   });
 }
+
+document.querySelector('[onclick="showTab(\'libraryTab\')"]').addEventListener("click", loadImages);
+
+function previewFlex() {
+  const flex = {
+    type: "bubble",
+    hero: {
+      type: "image",
+      url: document.getElementById("imageurl").value,
+      size: "full",
+      aspectMode: "cover",
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        { type: "text", text: document.getElementById("title").value, weight: "bold", size: "lg" },
+        { type: "text", text: document.getElementById("message").value, wrap: true, margin: "md", size: "md" },
+        { type: "text", text: document.getElementById("dateinfo").value, size: "sm", color: "#999", margin: "md" }
+      ]
+    }
+  };
+  document.getElementById("flexpreview").innerText = JSON.stringify(flex, null, 2);
+}
+
+async function shareFlex() {
+  await liff.init({ liffId: LIFF_ID });
+  if (!liff.isLoggedIn()) return liff.login();
+
+  const flex = {
+    type: "bubble",
+    hero: {
+      type: "image",
+      url: document.getElementById("imageurl").value,
+      size: "full",
+      aspectMode: "cover",
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        { type: "text", text: document.getElementById("title").value, weight: "bold", size: "lg" },
+        { type: "text", text: document.getElementById("message").value, wrap: true, margin: "md", size: "md" },
+        { type: "text", text: document.getElementById("dateinfo").value, size: "sm", color: "#999", margin: "md" }
+      ]
+    }
+  };
+
+  await liff.shareTargetPicker([{ type: "flex", altText: flex.body.contents[0].text, contents: flex }]);
+  alert("✅ แชร์สำเร็จ");
+}
 </script>
+</body>
+</html>
