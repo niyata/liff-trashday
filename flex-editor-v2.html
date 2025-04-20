@@ -1,160 +1,213 @@
-
 <!DOCTYPE html>
 <html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <title>📝 Flex Message Editor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="/trashday/env.js"></script>
-  <style>
-    .image-thumb { width: 100px; height: 100px; object-fit: cover; border-radius: 6px; margin: 5px; cursor: pointer; border: 2px solid transparent; }
-    .image-thumb.selected { border-color: #0d6efd; }
-    .drop-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; transition: background 0.2s ease-in-out; }
-    .drop-zone:hover { background: #f8f9fa; }
-  </style>
-</head>
-<body class="bg-light">
-<div class="container py-4">
-  <div class="card shadow">
-    <div class="card-body">
-      <h3 class="card-title text-primary mb-4">📝 Flex Message Editor</h3>
-      <form id="flexForm">
-        <div class="mb-3">
-          <label>หัวข้อ</label>
-          <input type="text" class="form-control" id="title" placeholder="เช่น แจ้งวันทิ้งขยะ">
-        </div>
-        <div class="mb-3">
-          <label>เนื้อหา</label>
-          <textarea class="form-control" id="content" placeholder="รายละเอียดที่จะแสดงใน Flex"></textarea>
-        </div>
-        <div class="mb-3">
-          <label>วันที่ / สัปดาห์ที่</label>
-          <input type="text" class="form-control" placeholder="เช่น 2025/04/20 | สัปดาห์ที่ 3">
-        </div>
-        <div class="mb-3 row align-items-center">
-          <label class="col-sm-2 col-form-label">URL รูปภาพ</label>
-          <div class="col-sm-8">
-            <input type="text" class="form-control" id="imageUrl" placeholder="https://...">
-          </div>
-          <div class="col-sm-2">
-            <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#imageModal">เลือกรูปภาพ</button>
-          </div>
-        </div>
-        <div class="text-center mt-4">
-          <button class="btn btn-warning">🔍 ดูตัวอย่าง</button>
-          <button class="btn btn-success">📩 แชร์ผ่าน LINE</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal รูปภาพ -->
-<div class="modal fade" id="imageModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content rounded-4 shadow">
-      <div class="modal-header border-0">
-        <h5 class="modal-title">เลือกรูปภาพ</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <ul class="nav nav-tabs" id="imgTab">
-          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#uploadTab">📤 อัปโหลด</button></li>
-          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#libTab">🖼️ คลังภาพ</button></li>
-        </ul>
-        <div class="tab-content pt-3">
-          <div class="tab-pane fade show active" id="uploadTab">
-            <div class="drop-zone" id="dropZone">คลิกหรือวางไฟล์ภาพที่นี่</div>
-            <input type="file" id="uploadInput" accept="image/*" hidden>
-            <div id="uploadPreview" class="text-center mt-2"></div>
-            <div class="progress mt-2 d-none" id="uploadProgress">
-              <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>📝 Flex Editor v2 (Fixed)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="/trashday/env.js"></script>
+    <style>
+      .drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: background 0.2s ease-in-out;
+      }
+      .drop-zone:hover {
+        background: #f8f9fa;
+      }
+      .image-thumb {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 6px;
+        margin: 5px;
+        cursor: pointer;
+        border: 2px solid transparent;
+      }
+      .image-thumb.selected {
+        border-color: #0d6efd;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container py-4">
+      <div class="card shadow">
+        <div class="card-body">
+          <h3 class="card-title text-primary mb-4">📝 Flex Message Editor</h3>
+          <form>
+            <div class="mb-3">
+              <label>หัวข้อ</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="เช่น แจ้งวันทิ้งขยะ"
+              />
             </div>
-            <button id="uploadBtn" class="btn btn-success mt-2 d-none">🚀 อัปโหลด</button>
+            <div class="mb-3">
+              <label>เนื้อหา</label>
+              <textarea
+                class="form-control"
+                placeholder="รายละเอียดที่จะแสดงใน Flex"
+              ></textarea>
+            </div>
+            <div class="mb-3 row align-items-center">
+              <label class="col-sm-2 col-form-label">URL รูปภาพ</label>
+              <div class="col-sm-10 d-flex gap-2">
+                <input
+                  type="text"
+                  id="imageUrl"
+                  class="form-control"
+                  placeholder="https://..."
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#imageModal"
+                >
+                  เลือกรูป
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4 shadow">
+          <div class="modal-header border-0">
+            <h5 class="modal-title">เลือกรูปภาพ</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
-          <div class="tab-pane fade" id="libTab">
-            <div class="d-flex flex-wrap mt-2" id="libraryImages"></div>
+          <div class="modal-body">
+            <ul class="nav nav-tabs">
+              <li class="nav-item">
+                <button
+                  class="nav-link active"
+                  data-bs-toggle="tab"
+                  data-bs-target="#uploadTab"
+                >
+                  📤 อัปโหลด
+                </button>
+              </li>
+              <li class="nav-item">
+                <button
+                  class="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#libTab"
+                >
+                  🖼️ คลังภาพ
+                </button>
+              </li>
+            </ul>
+            <div class="tab-content pt-3">
+              <div class="tab-pane fade show active" id="uploadTab">
+                <label for="uploadInput">
+                  <div class="drop-zone">
+                    📁 คลิกเพื่อเลือก หรือ ลากรูปมาวาง
+                  </div>
+                </label>
+                <input
+                  type="file"
+                  id="uploadInput"
+                  accept="image/*"
+                  class="d-none"
+                />
+                <div id="uploadPreview" class="text-center mt-2"></div>
+                <div class="progress mt-2 d-none" id="uploadProgress">
+                  <div
+                    class="progress-bar"
+                    role="progressbar"
+                    style="width: 0%"
+                  ></div>
+                </div>
+                <button id="uploadBtn" class="btn btn-success mt-2 d-none">
+                  🚀 อัปโหลด
+                </button>
+              </div>
+              <div class="tab-pane fade" id="libTab">
+                <div class="d-flex flex-wrap mt-2" id="libraryImages"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<script>
-// LINE LIFF Init
-liff.init({ liffId: LIFF_ID }).then(() => {
-  liff.getProfile().then(profile => window.lineUserId = profile.userId);
-});
+    <script>
+      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const uploadInput = document.getElementById("uploadInput");
+      const preview = document.getElementById("uploadPreview");
+      const uploadBtn = document.getElementById("uploadBtn");
+      const progress = document.getElementById("uploadProgress");
+      const progressBar = progress.querySelector(".progress-bar");
 
-// Supabase init
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      uploadInput.addEventListener("change", () => {
+        const file = uploadInput.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        preview.innerHTML = `<img src="\${url}" class="img-fluid rounded" style="max-height:200px">`;
+        uploadBtn.classList.remove("d-none");
+      });
 
-// Dropzone logic
-const uploadInput = document.getElementById("uploadInput");
-const dropZone = document.getElementById("dropZone");
-const preview = document.getElementById("uploadPreview");
-const progress = document.getElementById("uploadProgress");
-const progressBar = progress.querySelector(".progress-bar");
-const uploadBtn = document.getElementById("uploadBtn");
+      uploadBtn.addEventListener("click", async () => {
+        const file = uploadInput.files[0];
+        if (!file) return;
+        const fileName = Date.now() + "-" + file.name;
+        const { error } = await supabase.storage
+          .from("trash-images")
+          .upload(fileName, file);
+        if (error) return alert("Upload failed: " + error.message);
 
-dropZone.addEventListener("click", () => uploadInput.click());
+        const { data: urlObj } = supabase.storage
+          .from("trash-images")
+          .getPublicUrl(fileName);
+        document.getElementById("imageUrl").value = urlObj.publicUrl;
+        progress.classList.remove("d-none");
+        progressBar.style.width = "100%";
+        uploadBtn.innerText = "✅ เสร็จแล้ว";
+      });
 
-uploadInput.addEventListener("change", () => {
-  const file = uploadInput.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  preview.innerHTML = `<img src="\${url}" class="img-fluid rounded" style="max-height:200px">`;
-  uploadBtn.classList.remove("d-none");
-});
-
-uploadBtn.addEventListener("click", async () => {
-  const file = uploadInput.files[0];
-  if (!file) return;
-  const fileName = Date.now() + "-" + file.name;
-  const { error } = await supabase.storage.from("trash-images").upload(fileName, file);
-  if (error) return alert("Upload failed: " + error.message);
-
-  const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(fileName);
-  const url = urlObj.publicUrl;
-  document.getElementById("imageUrl").value = url;
-  progressBar.style.width = "100%";
-  uploadBtn.innerText = "✅ เสร็จแล้ว";
-
-  fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "saveImageMeta",
-      imageUrl: url,
-      day: "วันจันทร์",
-      week: "1",
-      uploadedBy: window.lineUserId || "unknown"
-    })
-  });
-});
-
-// Load gallery
-document.querySelector('[data-bs-target="#libTab"]').addEventListener("click", async () => {
-  const { data } = await supabase.storage.from("trash-images").list("", { limit: 100 });
-  const container = document.getElementById("libraryImages");
-  container.innerHTML = "";
-  data.forEach(item => {
-    const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(item.name);
-    const img = document.createElement("img");
-    img.src = urlObj.publicUrl;
-    img.className = "image-thumb";
-    img.onclick = () => {
-      document.querySelectorAll(".image-thumb").forEach(i => i.classList.remove("selected"));
-      img.classList.add("selected");
-      document.getElementById("imageUrl").value = img.src;
-    };
-    container.appendChild(img);
-  });
-});
-</script>
-</body>
+      document
+        .querySelector('[data-bs-target="#libTab"]')
+        .addEventListener("click", async () => {
+          const { data } = await supabase.storage
+            .from("trash-images")
+            .list("", { limit: 100 });
+          const container = document.getElementById("libraryImages");
+          container.innerHTML = "";
+          data?.forEach((item) => {
+            const { data: urlObj } = supabase.storage
+              .from("trash-images")
+              .getPublicUrl(item.name);
+            const img = document.createElement("img");
+            img.src = urlObj.publicUrl;
+            img.className = "image-thumb";
+            img.onclick = () => {
+              document
+                .querySelectorAll(".image-thumb")
+                .forEach((i) => i.classList.remove("selected"));
+              img.classList.add("selected");
+              document.getElementById("imageUrl").value = img.src;
+            };
+            container.appendChild(img);
+          });
+        });
+    </script>
+  </body>
 </html>
