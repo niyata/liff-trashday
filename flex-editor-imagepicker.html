@@ -1,0 +1,105 @@
+
+<!-- แทรกปุ่มเลือกรูปภาพข้าง imageurl -->
+<div class="flex items-center gap-2 mt-2">
+  <input
+    id="imageurl"
+    type="url"
+    class="flex-1 border p-2 rounded"
+    placeholder="https://..."
+  />
+  <button
+    type="button"
+    class="bg-gray-200 hover:bg-gray-300 text-sm px-3 py-2 rounded"
+    onclick="document.getElementById('imageModal').classList.remove('hidden')"
+  >
+    📷 เลือกรูป
+  </button>
+</div>
+
+<!-- Modal: เลือกรูปภาพ -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white w-full max-w-2xl rounded-xl p-4 shadow-xl">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-lg font-semibold">เลือกรูปภาพ</h2>
+      <button onclick="closeImageModal()" class="text-gray-500 hover:text-black">✕</button>
+    </div>
+    <div>
+      <ul class="flex border-b text-sm mb-4">
+        <li><button class="px-4 py-2 border-b-2 border-blue-500" onclick="showTab('uploadTab')">📤 อัปโหลด</button></li>
+        <li><button class="px-4 py-2" onclick="showTab('libraryTab')">🖼️ คลังภาพ</button></li>
+      </ul>
+      <div id="uploadTab">
+        <label for="uploadInput" class="block w-full text-center py-6 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">📁 คลิกหรือวางรูปที่นี่</label>
+        <input type="file" id="uploadInput" class="hidden" accept="image/*" />
+        <div id="uploadPreview" class="mt-2 text-center"></div>
+        <div id="uploadProgress" class="w-full bg-gray-200 rounded h-2 mt-2 hidden">
+          <div class="bg-green-500 h-2 rounded" style="width: 0%"></div>
+        </div>
+        <button id="uploadBtn" class="bg-green-600 text-white px-4 py-2 mt-2 rounded hidden">🚀 อัปโหลด</button>
+      </div>
+      <div id="libraryTab" class="hidden">
+        <div id="libraryImages" class="grid grid-cols-3 gap-2 mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const uploadInput = document.getElementById("uploadInput");
+const preview = document.getElementById("uploadPreview");
+const uploadBtn = document.getElementById("uploadBtn");
+const progress = document.getElementById("uploadProgress");
+const progressBar = progress.querySelector("div");
+
+function closeImageModal() {
+  document.getElementById("imageModal").classList.add("hidden");
+}
+function showTab(tabId) {
+  document.getElementById("uploadTab").classList.add("hidden");
+  document.getElementById("libraryTab").classList.add("hidden");
+  document.getElementById(tabId).classList.remove("hidden");
+  if (tabId === "libraryTab") loadImages();
+}
+
+uploadInput.addEventListener("change", () => {
+  const file = uploadInput.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  preview.innerHTML = `<img src="${url}" class="mx-auto max-h-40 rounded">`;
+  uploadBtn.classList.remove("hidden");
+});
+
+uploadBtn.addEventListener("click", async () => {
+  const file = uploadInput.files[0];
+  if (!file) return;
+  const fileName = Date.now() + "-" + file.name;
+  progress.classList.remove("hidden");
+
+  const { error } = await supabase.storage.from("trash-images").upload(fileName, file);
+  if (error) return alert("อัปโหลดผิดพลาด: " + error.message);
+
+  const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(fileName);
+  document.getElementById("imageurl").value = urlObj.publicUrl;
+  progressBar.style.width = "100%";
+  closeImageModal();
+});
+
+async function loadImages() {
+  const { data } = await supabase.storage.from("trash-images").list("", { limit: 100 });
+  const box = document.getElementById("libraryImages");
+  box.innerHTML = "";
+  data?.forEach(item => {
+    const { data: urlObj } = supabase.storage.from("trash-images").getPublicUrl(item.name);
+    const btn = document.createElement("img");
+    btn.src = urlObj.publicUrl;
+    btn.className = "w-full rounded cursor-pointer hover:opacity-80";
+    btn.onclick = () => {
+      document.getElementById("imageurl").value = btn.src;
+      closeImageModal();
+    };
+    box.appendChild(btn);
+  });
+}
+</script>
